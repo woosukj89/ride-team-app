@@ -1,0 +1,197 @@
+@font-face { font-family: 'MapoPeacefull'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/MapoPeacefullA.woff') format('woff'); font-weight: normal; font-style: normal; }
+@font-face { font-family: 'JSDongkang-Regular'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/JSDongkang-RegularA1.woff') format('woff'); font-weight: normal; font-style: normal; }
+@font-face { font-family: 'Cafe24Oneprettynight'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.1/Cafe24Oneprettynight.woff') format('woff'); font-weight: normal; font-style: normal; }
+@font-face { font-family: 'Cafe24Dangdanghae'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.2/Cafe24Dangdanghae.woff') format('woff'); font-weight: normal; font-style: normal; }
+@font-face { font-family: 'MapoDPPA'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/MapoDPPA.woff') format('woff'); font-weight: normal; font-style: normal; }
+@font-face { font-family: 'Cafe24Simplehae'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.1/Cafe24Simplehae.woff') format('woff'); font-weight: normal; font-style: normal; }
+@font-face { font-family: 'BBTreeGR'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_nine_@1.1/BBTreeGR.woff') format('woff'); font-weight: normal; font-style: normal; }
+@font-face { font-family: 'MapoFlowerIsland'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/MapoFlowerIslandA.woff') format('woff'); font-weight: normal; font-style: normal; }
+@font-face { font-family: 'TTTogether'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/TTTogetherA.woff') format('woff'); font-weight: normal; font-style: normal; }
+@font-face { font-family: 'Recipekorea'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/Recipekorea.woff') format('woff'); font-weight: normal; font-style: normal; }
+@font-face { font-family: 'yg-jalnan'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.2/JalnanOTF00.woff') format('woff'); font-weight: normal; font-style: normal; }
+@font-face { font-family: 'TmonMonsori'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/TmonMonsori.woff') format('woff'); font-weight: normal; font-style: normal; }
+@font-face { font-family: 'Binggrae-Bold'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/Binggrae-Bold.woff') format('woff'); font-weight: normal; font-style: normal; }
+
+.font-TTTogether {
+  font-family: TTTogether;
+}
+
+.font-Recipekorea {
+  font-family: Recipekorea;
+}
+
+.font-ygjalnan {
+  font-family: yg-jalnan;
+}
+
+.font-TmonMonsori {
+  font-family: TmonMonsori;
+}
+
+.font-Binggrae-Bold {
+  font-family: Binggrae-Bold;
+}
+
+.font-MapoPeacefull {
+  font-family: MapoPeacefull;
+}
+.font-JSDongkang-Regular {
+  font-family: JSDongkang-Regular;
+}
+.font-Cafe240neprettynight {
+  font-family: Cafe24Oneprettynight;
+}
+.font-Cafe24Dangdanghae {
+  font-family: Cafe24Dangdanghae;
+}
+.font-MapoDPPA {
+  font-family: MapoDPPA;
+}
+.font-Cafe24Simplehae {
+  font-family: Cafe24Simplehae;
+}
+.font-BBTreeGR {
+  font-family: BBTreeGR;
+}
+.font-MapoFlowerIsland {
+  font-family: MapoFlowerIsland;
+}
+
+#assignment-report {
+  font-family: "Arial", Gadget, sans-serif;
+  font-size: 10px;
+  width: 650px;
+  margin: auto;
+  position: relative;
+}
+
+#assignment-report header {
+  display: grid;
+  grid-template-columns: 45% 50%;
+  height: 150px;
+  margin-bottom: 30px;
+}
+
+#assignment-report .logo-div {
+}
+
+#assignment-report .logo {
+  position: relative;
+  z-index: -1;
+  padding: 10px;
+  height: 250px;
+  top: -30px;
+}
+
+#assignment-report .verse-div {
+  margin-top: 65px;
+  text-align: center;
+}
+
+#assignment-report .main-container {
+  width: 90%;
+  margin: auto;
+  font-size: 17px;
+  font-weight: 500;
+  /*font-family: Geneva, Tahoma, Verdana, sans-serif;*/
+}
+
+#assignment-report .main-header {
+  margin-bottom: 20px;
+  /*font-weight: ;*/
+  font-size: 24px;
+}
+
+#assignment-report .sub-header {
+  font-family: Georgia, Times, "Times New Roman", serif;
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 7px;
+  color: #5a5a5a;
+}
+
+#assignment-report .grid-container {
+  display: grid;
+  grid-template-columns: 134px auto;
+  justify-content: start;
+}
+
+#assignment-report .grid-rider-container {
+  padding: .5em .8em;
+  width: 130px;
+}
+
+#assignment-report .grid-ridee-container {
+
+}
+
+#assignment-report .grid-top-container {
+  display: grid;
+  grid-template-columns: 30px 134px auto;
+  align-content: center;
+}
+
+#assignment-report .grid-ridee-middle-top {
+  padding-top: .5em;
+}
+
+#assignment-report .grid-ridee-name-section {
+  padding-top: .5em;
+}
+
+#assignment-report .grid-ridee-phone-section {
+  padding-top: 10px;
+  font-size: .8rem;
+  font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+}
+
+#assignment-report .grid-bottom-container {
+  display: grid;
+  grid-template-columns: 20px auto;
+  font-size: .8rem;
+}
+
+#assignment-report .grid-ridee-middle-bottom {
+  padding: .5em .8em;
+}
+
+#assignment-report .grid-ridee-address-section {
+  padding: .5em .8em;
+  font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+}
+
+#assignment-report article {
+  width: 95%;
+  margin: auto;
+}
+
+#assignment-report section {
+  width: 90%;
+  margin: 0 auto 20px;
+  padding-left: 20px;
+}
+
+#assignment-report footer {
+  margin-top: 40px;
+  padding-bottom: 20px;
+}
+
+#assignment-report .footer-container {
+  text-align: right;
+  padding-right: 40px;
+}
+
+#assignment-report .footer-affiliation {
+  display: inline-block;
+  padding-top: 20px;
+  text-align: right;
+}
+
+#assignment-report .footer-logo-container {
+  display: inline-block;
+  float: right;
+}
+
+#assignment-report .footer-logo {
+  height: 80px;
+}
