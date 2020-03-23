@@ -13,6 +13,7 @@ import Assign from './Assign';
 import Report from './Report';
 import PersonForm from './PersonForm';
 import AssignReport from "./AssignReport";
+import DayTypeSelect from "./DayTypeSelect";
 
 function App() {
   return (
@@ -38,10 +39,13 @@ function App() {
                     <Link to="/ridees">Ridees</Link>
                   </li>
                   <li>
-                    <Link to="assign">Assign</Link>
+                    <Link to="/assign">Assign</Link>
                   </li>
                   <li>
-                    <Link to="report">Report</Link>
+                    <Link to="/report">Report</Link>
+                  </li>
+                  <li>
+                    <Link to="/daytype">Select Day</Link>
                   </li>
                 </ul>
               </nav>
@@ -69,8 +73,9 @@ function App() {
                          <PersonForm type='ridee' mode='edit' id={props.match.params.rideeID} />} />
               <Route path="/ridees" component={Ridees}/>
               <Route path="/assign" component={Assign}/>
-              <Route path="/" render={() => (<h2>Home</h2>)}/>
               <Route path="/report" component={Report}/>
+              <Route path="/daytype" component={DayTypeSelect} />
+              <Route path="/" render={() => (<h2>Home</h2>)}/>
             </Switch>
           </div>
         </section>
