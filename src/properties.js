@@ -1,7 +1,6 @@
 
 export const properties = {
     apiHost: "http://localhost:8000",
-    googleAPIkey: "AIzaSyATCBfUza4SMCMo-TKMqHu9UtCucSrMcxs",
 };
 
 export const API_URLs = {

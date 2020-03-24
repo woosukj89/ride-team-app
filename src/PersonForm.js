@@ -1,6 +1,5 @@
 import React, {Fragment} from 'react';
 import userService from "./service/UserService";
-import { properties } from "./properties";
 
 class PersonForm extends React.Component {
     constructor(props) {
@@ -75,7 +74,7 @@ class PersonForm extends React.Component {
             this.addressAutocomplete.addListener("place_changed", this.handleAddressSelect);
         };
 
-        googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=${properties.googleAPIkey}&libraries=places`;
+        googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_API_KEY}&libraries=places`;
         window.document.body.appendChild(googleMapsScript);
 
         googleMapsScript.addEventListener('load', initiateAutocomplete)
