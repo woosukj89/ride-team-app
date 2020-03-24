@@ -1,3 +1,5 @@
+const mapper = require('./data_validate_map');
+
 const express = require('express');
 const cors = require('cors');
 
@@ -10,14 +12,14 @@ const db = require('../db/db_operations');
 app.use(cors());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
-app.use(function(req, res, next) {
-    res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    res.header("Access-Control-Allow-Method", 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
-    next();
-});
+// app.use(function(req, res, next) {
+//     res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
+//     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+//     res.header("Access-Control-Allow-Method", 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
+//     next();
+// });
 
-app.options('*', cors());
+// app.options('*', cors());
 
 // Start server
 app.listen(PORT, () => {
@@ -279,14 +281,14 @@ app.post("/api/ride/history", (req, res, next) => {
 });
 
 app.patch("/api/ride/history/:id", (req, res, next) => {
-    const sql = "UPDATE RIDE_HISTORY SET \
-        RIDEE = COALESCE(?, RIDEE),\
-        RIDER = COALESCE(?, RIDER),\
-        DAY = COALESCE(?, DAY),\
-        DATE = COALESCE(?, DATE),\
-        TYPE = COALESCE(?, TYPE),\
-        CANCELLED = COALESCE(?, CANCELLED),\
-        WHERE ID = ?";
+    const sql = `UPDATE RIDE_HISTORY SET
+        RIDEE = COALESCE(?, RIDEE),
+        RIDER = COALESCE(?, RIDER),
+        DAY = COALESCE(?, DAY),
+        DATE = COALESCE(?, DATE),
+        TYPE = COALESCE(?, TYPE),
+        CANCELLED = COALESCE(?, CANCELLED),
+        WHERE ID = ?`;
     const data = {
         ridee: req.body.ridee || '',
         rider: req.body.rider || '',
@@ -308,6 +310,132 @@ app.patch("/api/ride/history/:id", (req, res, next) => {
                 changes: this.changes
             })
         })
+});
+
+app.get("/api/ride/queue", (req, res) => {
+    const date = req.query.date;
+    const sql = "SELECT * FROM RIDE_QUEUE WHERE ? BETWEEN START_DATE AND END_DATE";
+    db.get(sql, [date], (err, result) => {
+        if (err) {
+            console.log(err);
+            res.status(400).json({'error': err.message});
+            return;
+        }
+        res.json({
+            message: "success",
+            data: result
+        })
+    });
+});
+
+app.get("/api/ride/daysallowed", (req, res) => {
+    const sql = `SELECT *
+                 FROM DAYS_ALLOWED
+                 WHERE ACTIVE = 1`;
+    db.all(sql, [], (error, result) => {
+        if (error) {
+            console.log(error);
+            res.status(400).json({'error': error.message});
+            return;
+        }
+        res.json({
+            message: "success",
+            data: mapper.mapDaysAllowed(result)
+        })
+    })
+});
+
+app.get("/api/reference/days", (req, res) => {
+    const sql = "SELECT * FROM DAY_REF";
+    db.all(sql, [], (error, result) => {
+        if (error) {
+            console.log(error);
+            res.status(400).json({'error': error.message});
+            return;
+        }
+        res.json({
+            message: "success",
+            data: result
+        })
+    })
+});
+
+app.get("/api/reference/types", (req, res) => {
+    const sql = "SELECT * FROM TYPE_REF";
+    db.all(sql, [], (error, result) => {
+        if (error) {
+            console.log(error);
+            res.status(400).json({'error': error.message});
+            return;
+        }
+        res.json({
+            message: "success",
+            data: result
+        })
+    })
+});
+
+app.put("/api/ride/availability/:id", (req, res) => {
+    console.log(req);
+    const riderID = req.params.id;
+    const queueID = req.body.queueID;
+    const data = req.body.data.map(row => [queueID, row.day, row.type, riderID]);
+    const params = data.flat();
+    const placeholders = req.body.data.map(() => '(?, ?, ?, ?)').join(', ');
+    const sql1 = "DELETE FROM RIDER_AVAILABILITY WHERE RIDER_ID = ? AND QUEUE_ID = ?";
+    const sql2 = "INSERT INTO RIDER_AVAILABILITY (QUEUE_ID, DAY, TYPE, RIDER_ID) VALUES " + placeholders;
+
+    db.serialize(() => {
+        db.run(sql1, [riderID, queueID], (err) => {
+            if(err) {
+                res.status(400).json({'error': err.message});
+                return;
+            }})
+            .run(sql2, params,
+            function(err, result) {
+                if(err) {
+                    res.status(400).json({'error': err.message});
+                    return;
+                }
+                res.json({
+                    message: "success",
+                    data: data,
+                    changes: this.changes
+                })
+            }
+        )
+    })
+});
+
+app.put("/api/ride/request/:id", (req, res) => {
+    const rideeID = req.params.id;
+    const queueID = req.body.queueID;
+    const data = req.body.data.map(row => [queueID, row.day, row.type, rideeID]);
+    const params = data.flat();
+    const placeholders = req.body.data.map(() => '(?, ?, ?, ?)').join(', ');
+    const sql1 = "DELETE FROM RIDE_REQUEST WHERE RIDEE_ID = ? AND QUEUE_ID = ?";
+    const sql2 = "INSERT INTO RIDE_REQUEST (QUEUE_ID, DAY, TYPE, RIDEE_ID) VALUES " + placeholders;
+
+    db.serialize(() => {
+        db.run(sql1, [rideeID, queueID], (err) => {
+            if(err) {
+                res.status(400).json({'error': err.message});
+                return;
+            }})
+            .run(sql2, params,
+                function(err, result) {
+                    if(err) {
+                        res.status(400).json({'error': err.message});
+                        return;
+                    }
+                    res.json({
+                        message: "success",
+                        data: data,
+                        changes: this.changes
+                    })
+                }
+            )
+    })
 });
 
 // Default response for any other request

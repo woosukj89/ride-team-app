@@ -63,6 +63,39 @@ const userService = {
                 body: JSON.stringify(data),
                 headers: { "Content-type": "application/json; charset=UTF-8"}})
             .then(response => response.json())
+    },
+    getCurrentQueue(date) {
+        return fetch(properties.apiHost + API_URLs.queue + "?date=" + date).then(response => response.json());
+    },
+    getDaysAllowed() {
+        return fetch(properties.apiHost + API_URLs.daysAllowed).then(response => response.json());
+    },
+    getDaysRef() {
+        return fetch(properties.apiHost + API_URLs.daysRef).then(response => response.json());
+    },
+    getTypesRef() {
+        return fetch(properties.apiHost + API_URLs.typesRef).then(response => response.json());
+    },
+    getRideAvailability() {
+        return fetch(properties.apiHost + API_URLs.rideAvailability).then(response => response.json());
+    },
+    getRideNeeded() {
+
+        return fetch(properties.apiHost + API_URLs.rideNeeded).then(response => response.json());
+    },
+    saveRiderAvailability(riderID, data) {
+        return fetch(properties.apiHost + API_URLs.rideAvailability + riderID,
+            { method: "PUT",
+                body: JSON.stringify(data),
+                headers: { "Content-type": "application/json; charset=UTF-8"}})
+            .then(response => response.json());
+    },
+    saveRideRequest(rideeID, data) {
+        return fetch(properties.apiHost + API_URLs.rideNeeded + rideeID,
+            { method: "PUT",
+                body: JSON.stringify(data),
+                headers: { "Content-type": "application/json; charset=UTF-8"}})
+            .then(response => response.json());
     }
 };
 

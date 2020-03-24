@@ -1,7 +1,6 @@
 
 export const properties = {
     apiHost: "http://localhost:8000",
-    googleAPIkey: "AIzaSyATCBfUza4SMCMo-TKMqHu9UtCucSrMcxs",
 };
 
 export const API_URLs = {
@@ -9,7 +8,13 @@ export const API_URLs = {
     rider: "/api/rider/",
     ridees: "/api/ridees",
     ridee: "/api/ridee/",
-    history: "/api/ride/history"
+    history: "/api/ride/history",
+    queue: "/api/ride/queue",
+    daysAllowed: "/api/ride/daysallowed",
+    rideAvailability: "/api/ride/availability/",
+    rideNeeded: "/api/ride/request/",
+    daysRef: "/api/reference/days",
+    typesRef: "/api/reference/types"
 };
 
 export const Constants = {
