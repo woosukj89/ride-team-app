@@ -1,7 +1,14 @@
 import { properties, API_URLs } from "../properties";
 // import axios from 'axios';
+import { formatQueryParams } from "./requestHandlers"
 
 const userService = {
+    login(data) {
+        return fetch(properties.apiHost + API_URLs.login,
+            { method: 'POST',
+            body: JSON.stringify(data),
+            headers: { "Content-type": "application/json; charset=UTF-8"}}).then(response => response.json())
+    },
     getRiders() {
         return fetch(properties.apiHost + API_URLs.riders).then(response => response.json())
     },
@@ -64,8 +71,25 @@ const userService = {
                 headers: { "Content-type": "application/json; charset=UTF-8"}})
             .then(response => response.json())
     },
-    getCurrentQueue(date) {
+    getQueue(date) {
         return fetch(properties.apiHost + API_URLs.queue + "?date=" + date).then(response => response.json());
+    },
+    saveQueue(data) {
+        if (data.ID) {
+            return fetch(properties.apiHost + API_URLs.queue + data.ID,
+                {
+                    method: 'PATCH',
+                    body: JSON.stringify(data),
+                    headers: {"Content-type": "application/json; charset=UTF-8"}
+                }).then(response => response.json());
+        } else {
+            return fetch(properties.apiHost + API_URLs.queue,
+                {
+                    method: 'POST',
+                    body: JSON.stringify(data),
+                    headers: {"Content-type": "application/json; charset=UTF-8"}
+                })
+        }
     },
     getDaysAllowed() {
         return fetch(properties.apiHost + API_URLs.daysAllowed).then(response => response.json());
@@ -76,12 +100,11 @@ const userService = {
     getTypesRef() {
         return fetch(properties.apiHost + API_URLs.typesRef).then(response => response.json());
     },
-    getRideAvailability() {
-        return fetch(properties.apiHost + API_URLs.rideAvailability).then(response => response.json());
+    getRideAvailability(params) {
+        return fetch(properties.apiHost + API_URLs.rideAvailability + formatQueryParams(params)).then(response => response.json());
     },
-    getRideNeeded() {
-
-        return fetch(properties.apiHost + API_URLs.rideNeeded).then(response => response.json());
+    getRideNeeded(params) {
+        return fetch(properties.apiHost + API_URLs.rideNeeded + formatQueryParams(params)).then(response => response.json());
     },
     saveRiderAvailability(riderID, data) {
         return fetch(properties.apiHost + API_URLs.rideAvailability + riderID,
@@ -96,6 +119,25 @@ const userService = {
                 body: JSON.stringify(data),
                 headers: { "Content-type": "application/json; charset=UTF-8"}})
             .then(response => response.json());
+    },
+    getUserAssignment(data) {
+        return fetch(properties.apiHost + API_URLs.assignment).then(response => response.json());
+    },
+    markAssignmentAsComplete(data) {
+        return fetch(properties.apiHost + API_URLs.assignment,
+            {
+                method: "PUT",
+                body: JSON.stringify(data),
+                headers: { "Content-type": "application/json; charset=UTF-8"}
+            }).then(response => response.json());
+    },
+    getHistory(params) {
+        return fetch(properties.apiHost + API_URLs.history + formatQueryParams(params)).then(response=>response.json());
+    },
+    getRideDetail(type, id) {
+        if (type === "history") {
+            return fetch(properties.apiHost + API_URLs.historyDetail + id).then(response => response.json());
+        }
     }
 };
 

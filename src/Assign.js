@@ -26,11 +26,8 @@ class Assign extends React.Component {
         };
 
         this.pageRef = {
-            0: 'selectDays',
-            1: 'selectRidees',
-            2: 'selectRiders',
-            3: 'assignment',
-            4: 'report'
+            0: 'assignment',
+            1: 'report'
         };
         this.reportData = null;
         this.rideeLeaderMap = null;

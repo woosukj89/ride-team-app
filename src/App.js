@@ -1,88 +1,37 @@
 import React from 'react';
 import './App.css';
-import {
-  BrowserRouter as Router,
-  Switch,
-  Route,
-  Link
-} from "react-router-dom";
-import About from './About';
-import Riders from './Riders';
-import Ridees from './Ridees';
-import Assign from './Assign';
-import Report from './Report';
-import PersonForm from './PersonForm';
-import AssignReport from "./AssignReport";
-import DayTypeSelect from "./DayTypeSelect";
+import {UserContext, UserProvider} from "./context/user-context";
+import AdminApp from "./AdminApp";
+import RiderApp from "./RiderApp";
+import RideeApp from "./RideeApp";
+import UnauthenticatedApp from "./UnauthenticatedApp";
+
+// const AdminApp = React.lazy(import('./AdminApp'));
+// const RiderApp = React.lazy(import('./RiderApp'));
+// const RideeApp = React.lazy(import('./RideeApp'));
+// const UnauthenticatedApp = React.lazy(import('./UnauthenticatedApp'));
 
 function App() {
-  return (
-      <Router>
-        <div>
-          <header>
-            <div>
-              <div>
-                Ride Team Logo
-              </div>
-              <nav>
-                <ul>
-                  <li>
-                    <Link to="/">Home</Link>
-                  </li>
-                  <li>
-                    <Link to="/about">About Us</Link>
-                  </li>
-                  <li>
-                    <Link to="/riders">Riders</Link>
-                  </li>
-                  <li>
-                    <Link to="/ridees">Ridees</Link>
-                  </li>
-                  <li>
-                    <Link to="/assign">Assign</Link>
-                  </li>
-                  <li>
-                    <Link to="/report">Report</Link>
-                  </li>
-                  <li>
-                    <Link to="/daytype">Select Day</Link>
-                  </li>
-                </ul>
-              </nav>
-            </div>
-          </header>
-        </div>
-        <section>
-          <div>
-            <Switch>
-              <Route path="/about">
-                <About />
-              </Route>
-              <Route path="/riders/rider/new">
-                <PersonForm type='rider' mode='new' />
-              </Route>
-              <Route path="/riders/rider/:riderID"
-                     component={(props) =>
-                         <PersonForm type='rider' mode='edit' id={props.match.params.riderID} />} />
-              <Route path="/riders" component={Riders}/>
-              <Route path="/ridees/ridee/new">
-                <PersonForm type='ridee' mode='new' />
-              </Route>
-              <Route path="/ridees/ridee/:rideeID"
-                     component={(props) =>
-                         <PersonForm type='ridee' mode='edit' id={props.match.params.rideeID} />} />
-              <Route path="/ridees" component={Ridees}/>
-              <Route path="/assign" component={Assign}/>
-              <Route path="/report" component={Report}/>
-              <Route path="/daytype" component={DayTypeSelect} />
-              <Route path="/" render={() => (<h2>Home</h2>)}/>
-            </Switch>
-          </div>
-        </section>
-        <Route path="/assignment/report" component={AssignReport} />
-      </Router>
 
-  );
+  return (
+      <UserProvider>
+          <UserContext.Consumer>
+              {({user, login, logout, register}) => {
+                  const {id, role, username} = user;
+                  switch (role) {
+                      case 'admin':
+                          return <AdminApp userID={id} username={username} logout={logout}/>;
+                      case 'rider':
+                          return <RiderApp userID={id} username={username} logout={logout}/>;
+                      case 'ridee':
+                          return <RideeApp userID={id} username={username} logout={logout}/>;
+                      default:
+                          return <UnauthenticatedApp login={login} register={register}/>;
+                  }
+              }}
+          </UserContext.Consumer>
+      </UserProvider>
+  )
 }
 
 export default App;

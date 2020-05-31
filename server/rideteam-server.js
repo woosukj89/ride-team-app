@@ -30,6 +30,26 @@ app.get("/", (req, res, next) => {
     res.json({"message":"OK"})
 });
 
+app.post("/api/login", (req, res) => {
+    if (!req.body.phone_number) {
+        console.log("under phone_number missing");
+        res.status(401).json({'error': "Phone number does not exist"});
+        return;
+    }
+    const sql = 'SELECT USER_ID, ROLE, USERNAME FROM USER WHERE PHONE_NUMBER = ?';
+    const params = req.body.phone_number;
+    db.get(sql, [params], (err, row) => {
+        if (err) {
+            res.status(400).json({'error': err.message});
+            return;
+        }
+        res.json({
+            "message": "success",
+            "data": row
+        })
+    })
+});
+
 app.get("/api/riders", (req, res, next) => {
     const sql = 'SELECT * FROM RIDER';
     db.all(sql, [], (err, rows) => {
@@ -241,11 +261,29 @@ app.delete("/api/ridee/:id", (req, res, next) => {
 
 app.get("/api/ride/history", (req, res, next) => {
     let sql = 'SELECT * FROM RIDE_HISTORY ';
-    const condition = 'WHERE DATE BETWEEN ? AND ?';
+    let conditions = [];
+    const condition = 'DATE BETWEEN ? AND ?';
+    const condition2 = 'RIDER=?';
+    const condition3 = 'RIDEE=?';
+
     let params = [];
-    if(req.body.start_date && req.body.end_date) {
-       sql += condition;
-       params = [req.body.start_date, req.body.end_date];
+    if (req.query.start_date && req.query.end_date) {
+       conditions.push(condition);
+       params = [req.query.start_date, req.query.end_date];
+    }
+    if (req.query.userID && req.query.role) {
+        if (req.query.role === "rider") {
+            conditions.push(condition2);
+            params.push(req.query.userID);
+        }
+        else if (req.query.role === "ridee") {
+            conditions.push(condition3);
+            params.push(req.query.userID);
+        }
+    }
+    if (conditions.length) {
+        sql += 'WHERE ';
+        sql += conditions.join(" AND");
     }
     db.all(sql, params, (err, rows) => {
         if(err) {
@@ -278,6 +316,40 @@ app.post("/api/ride/history", (req, res, next) => {
             "id": this.lastID
         })
     });
+});
+
+app.get("/api/ride/history/detail/:id", (req, res) => {
+    let sql = `SELECT
+                H.DATE,
+                D.DAY,
+                T.RIDE_TYPE,
+                R.NAME AS RIDER_NAME,
+                R.ADDRESS AS RIDER_ADDRESS,
+                R.PHONE_NUMBER AS RIDER_PHONE,
+                E.NAME AS RIDEE_NAME,
+                E.ADDRESS AS RIDEE_ADDRESS,
+                E.PHONE_NUMBER AS RIDEE_PHONE,
+                H.DISTANCE1,
+                H.DISTANCE2
+            FROM
+            RIDE_HISTORY H
+            JOIN RIDER R
+            ON H.RIDER_ID = R.ID
+            JOIN RIDEE E
+            ON H.RIDEE_ID = E.ID
+            JOIN DAY_REF D
+            ON H.DAY = D.ID
+            JOIN TYPE_REF T
+            ON H.TYPE = T.KEY
+            WHERE H.ID = ?`;
+    const params = [req.params.id];
+    db.get(sql, params, (err, row) => {
+            if (err) {
+                res.status(400).json({"error": res.message});
+                return;
+            }
+            res.json({"message": "success", data: row})
+        })
 });
 
 app.patch("/api/ride/history/:id", (req, res, next) => {
@@ -324,6 +396,58 @@ app.get("/api/ride/queue", (req, res) => {
         res.json({
             message: "success",
             data: result
+        })
+    });
+});
+
+app.patch("/api/ride/queue/:id", (req, res) => {
+    const sql = `UPDATE RIDE_QUEUE SET
+        START_DATE = COALESCE(?, START_DATE),
+        END_DATE = COALESCE(?, START_DATE),
+        EXPIRE_DATE = COALESCE(?, EXPIRE_DATE),
+        ACTIVE = COALESCE(?, ACTIVE),
+        ASSIGNMENT_COMPLETE = COALESCE(?, ASSIGNMENT_COMPLETE)
+        WHERE ID = ?`;
+    const data = {
+        ...req.body,
+        ACTIVE: req.body.ACTIVE ? 1 : 0,
+        ASSIGNMENT_COMPLETE: req.body.ASSIGNMENT_COMPLETE ? 1 : 0
+    };
+    const params = [data.START_DATE, data.END_DATE, data.EXPIRE_DATE, data.ACTIVE, data.ASSIGNMENT_COMPLETE, req.params.id];
+
+    db.run(sql, params, function(err, result) {
+        if(err) {
+            res.status(400).json({'error': err.message});
+            return;
+        }
+        res.json({
+            message: "success",
+            data: data,
+            changes: this.changes
+        })
+    });
+});
+
+app.post("/api/ride/queue", (req, res) => {
+    const sql = `INSERT INTO RIDE_QUEUE (START_DATE, END_DATE, EXPIRE_DATE, ACTIVE, ASSIGNMENT_COMPLETE) 
+                 VALUES (?, ?, ?, ?, ?)`;
+    const data = {
+        ...req.body,
+        ACTIVE: req.body.ACTIVE ? 1 : 0,
+        ASSIGNMENT_COMPLETE: req.body.ASSIGNMENT_COMPLETE ? 1 : 0
+    };
+    const params = [data.START_DATE, data.END_DATE, data.EXPIRE_DATE, data.ACTIVE, data.ASSIGNMENT_COMPLETE];
+
+    db.run(sql, params, function(err, result) {
+        if(err) {
+            res.status(400).json({'error': err.message});
+            console.log(err);
+            return;
+        }
+        res.json({
+            "message": "success",
+            "data": data,
+            "id": this.lastID
         })
     });
 });
@@ -375,6 +499,52 @@ app.get("/api/reference/types", (req, res) => {
     })
 });
 
+app.get("/api/ride/availability", (req, res) => {
+    let params, sql;
+
+    if (req.query.userID) {
+        params = [req.query.queueID, req.query.userID];
+        sql = `SELECT * FROM RIDER_AVAILABILITY WHERE QUEUE_ID=? AND RIDER_ID=?`;
+    } else {
+        params = [req.query.queueID];
+        sql = `SELECT * FROM RIDER_AVAILABILITY WHERE QUEUE_ID=? ORDER BY RIDER_ID`;
+    }
+
+    db.all(sql, params, (error, result) => {
+        if (error) {
+            res.status(400).json({'error': error.message});
+            return;
+        }
+        res.json({
+            message: "success",
+            data: result
+        })
+    });
+});
+
+app.get("/api/ride/request", (req, res) => {
+    let params, sql;
+
+    if (req.query.userID) {
+        params = [req.query.queueID, req.query.userID];
+        sql = `SELECT * FROM RIDE_REQUEST WHERE QUEUE_ID=? AND RIDEE_ID=?`;
+    } else {
+        params = [req.query.userID];
+        sql = `SELECT * FROM RIDE_REQUEST WHERE QUEUE_ID=? ORDER BY RIDEE_ID`;
+    }
+
+    db.all(sql, params, (error, result) => {
+        if (error) {
+            res.status(400).json({'error': error.message});
+            return;
+        }
+        res.json({
+            message: "success",
+            data: result
+        })
+    });
+});
+
 app.put("/api/ride/availability/:id", (req, res) => {
     console.log(req);
     const riderID = req.params.id;
@@ -385,44 +555,13 @@ app.put("/api/ride/availability/:id", (req, res) => {
     const sql1 = "DELETE FROM RIDER_AVAILABILITY WHERE RIDER_ID = ? AND QUEUE_ID = ?";
     const sql2 = "INSERT INTO RIDER_AVAILABILITY (QUEUE_ID, DAY, TYPE, RIDER_ID) VALUES " + placeholders;
 
-    db.serialize(() => {
-        db.run(sql1, [riderID, queueID], (err) => {
-            if(err) {
-                res.status(400).json({'error': err.message});
-                return;
-            }})
-            .run(sql2, params,
-            function(err, result) {
-                if(err) {
-                    res.status(400).json({'error': err.message});
-                    return;
-                }
-                res.json({
-                    message: "success",
-                    data: data,
-                    changes: this.changes
-                })
-            }
-        )
-    })
-});
-
-app.put("/api/ride/request/:id", (req, res) => {
-    const rideeID = req.params.id;
-    const queueID = req.body.queueID;
-    const data = req.body.data.map(row => [queueID, row.day, row.type, rideeID]);
-    const params = data.flat();
-    const placeholders = req.body.data.map(() => '(?, ?, ?, ?)').join(', ');
-    const sql1 = "DELETE FROM RIDE_REQUEST WHERE RIDEE_ID = ? AND QUEUE_ID = ?";
-    const sql2 = "INSERT INTO RIDE_REQUEST (QUEUE_ID, DAY, TYPE, RIDEE_ID) VALUES " + placeholders;
-
-    db.serialize(() => {
-        db.run(sql1, [rideeID, queueID], (err) => {
-            if(err) {
-                res.status(400).json({'error': err.message});
-                return;
-            }})
-            .run(sql2, params,
+    db.run(sql1, [riderID, queueID], (err) => {
+        if(err) {
+            res.status(400).json({'error': err.message});
+            return;
+        }
+        if(data.length) {
+            db.run(sql2, params,
                 function(err, result) {
                     if(err) {
                         res.status(400).json({'error': err.message});
@@ -435,7 +574,48 @@ app.put("/api/ride/request/:id", (req, res) => {
                     })
                 }
             )
-    })
+        } else {
+            res.json({
+                message: "success"
+            })
+        }
+    });
+});
+
+app.put("/api/ride/request/:id", (req, res) => {
+    const rideeID = req.params.id;
+    const queueID = req.body.queueID;
+    const data = req.body.data.map(row => [queueID, row.day, row.type, rideeID]);
+    const params = data.flat();
+    const placeholders = req.body.data.map(() => '(?, ?, ?, ?)').join(', ');
+    const sql1 = "DELETE FROM RIDE_REQUEST WHERE RIDEE_ID = ? AND QUEUE_ID = ?";
+    const sql2 = "INSERT INTO RIDE_REQUEST (QUEUE_ID, DAY, TYPE, RIDEE_ID) VALUES " + placeholders;
+
+    db.run(sql1, [rideeID, queueID], (err) => {
+        if(err) {
+            res.status(400).json({'error': err.message});
+            return;
+        }
+        if(data.length) {
+            db.run(sql2, params,
+                function(err, result) {
+                    if(err) {
+                        res.status(400).json({'error': err.message});
+                        return;
+                    }
+                    res.json({
+                        message: "success",
+                        data: data,
+                        changes: this.changes
+                    })
+                }
+            )
+        } else {
+            res.json({
+                message: "success"
+            })
+        }
+    });
 });
 
 // Default response for any other request

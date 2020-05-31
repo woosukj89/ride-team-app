@@ -9,12 +9,15 @@ export const API_URLs = {
     ridees: "/api/ridees",
     ridee: "/api/ridee/",
     history: "/api/ride/history",
-    queue: "/api/ride/queue",
+    historyDetail: "/api/ride/history/detail/",
+    queue: "/api/ride/queue/",
     daysAllowed: "/api/ride/daysallowed",
     rideAvailability: "/api/ride/availability/",
     rideNeeded: "/api/ride/request/",
     daysRef: "/api/reference/days",
-    typesRef: "/api/reference/types"
+    typesRef: "/api/reference/types",
+    assignment: "/api/ride/assignment",
+    login: "/api/login"
 };
 
 export const Constants = {
@@ -28,4 +31,5 @@ export const Constants = {
         0: '일',
     },
     RideTypes: ['교회', '귀가'],
+    ChurchAddress: "1519 W Belt Line Rd, Carrollton, TX 75006"
 };
