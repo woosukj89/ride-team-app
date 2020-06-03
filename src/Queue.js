@@ -40,7 +40,7 @@ function Queue(props) {
                 <div>
                     <h4>Do you need rides this week?</h4>
                     <button>
-                        <Link to="/queue/ride-request">Request Rides</Link>
+                        <Link to={"/queue/ride-request/" + props.queueID + "/" + props.userID}>Request Rides</Link>
                     </button>
                 </div>}
             </div> :
@@ -62,7 +62,7 @@ function Queue(props) {
                 </button>}
                 {props.role === "ridee" &&
                 <button>
-                    <Link to="/queue/ride-request">Modify Request</Link>
+                    <Link to={"/queue/ride-request/" + props.queueID + "/" + props.userID}>Modify Request</Link>
                 </button>}
             </div>}
         </div>

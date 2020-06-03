@@ -259,6 +259,10 @@ app.delete("/api/ridee/:id", (req, res, next) => {
         })
 });
 
+app.post("/api/ride/pending", (req, res) => {
+    let sql = `INSERT INTO RIDE_PENDING (QUEUE_ID, DATE, DAY, TYPE, RIDEE, RIDEE_ID, RIDEE_ADDRESS, RIDER, RIDER_ID, RIDER_ADDRESS) VALUES`
+})
+
 app.get("/api/ride/history", (req, res, next) => {
     let sql = 'SELECT * FROM RIDE_HISTORY ';
     let conditions = [];
@@ -507,7 +511,11 @@ app.get("/api/ride/availability", (req, res) => {
         sql = `SELECT * FROM RIDER_AVAILABILITY WHERE QUEUE_ID=? AND RIDER_ID=?`;
     } else {
         params = [req.query.queueID];
-        sql = `SELECT * FROM RIDER_AVAILABILITY WHERE QUEUE_ID=? ORDER BY RIDER_ID`;
+        sql = `SELECT RA.*, R.NAME
+            FROM RIDER_AVAILABILITY RA
+            INNER JOIN RIDER R
+            ON R.ID = RA.RIDER_ID
+            WHERE QUEUE_ID=? ORDER BY DAY, TYPE, RIDER_ID`;
     }
 
     db.all(sql, params, (error, result) => {
@@ -529,8 +537,12 @@ app.get("/api/ride/request", (req, res) => {
         params = [req.query.queueID, req.query.userID];
         sql = `SELECT * FROM RIDE_REQUEST WHERE QUEUE_ID=? AND RIDEE_ID=?`;
     } else {
-        params = [req.query.userID];
-        sql = `SELECT * FROM RIDE_REQUEST WHERE QUEUE_ID=? ORDER BY RIDEE_ID`;
+        params = [req.query.queueID];
+        sql = `SELECT RQ.*, E.NAME
+            FROM RIDE_REQUEST RQ
+            INNER JOIN RIDEE E
+            ON E.ID = RQ.RIDEE_ID
+            WHERE QUEUE_ID=? ORDER BY DAY, TYPE, RIDEE_ID`;
     }
 
     db.all(sql, params, (error, result) => {
@@ -546,7 +558,6 @@ app.get("/api/ride/request", (req, res) => {
 });
 
 app.put("/api/ride/availability/:id", (req, res) => {
-    console.log(req);
     const riderID = req.params.id;
     const queueID = req.body.queueID;
     const data = req.body.data.map(row => [queueID, row.day, row.type, riderID]);

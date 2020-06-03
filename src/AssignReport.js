@@ -24,12 +24,12 @@ class AssignReport extends React.Component {
                         <div className="main-header font-TTTogether">{day.day} ({day.date})</div>
                         {day.types.map(type =>
                             <article id="test">
-                                <div className="sub-header">{type.type ? "Return Home" : "To Church"}</div>
+                                <div className="sub-header">{+type.type ? "Return Home" : "To Church"}</div>
                                 <div className="main-container font-BBTreeGR">
                                 {type.assignment.map(assignment =>
                                     <div className="grid-container">
                                         <div className="grid-rider-container">
-                                            {assignment.rider} ({assignment.riderLeader})
+                                            {assignment.rider} {assignment.riderLeader ? `(${assignment.riderLeader})` : ''}
                                         </div>
                                         <div className="grid-ridee-container">
                                             <div className="grid-top-container">
@@ -37,7 +37,7 @@ class AssignReport extends React.Component {
                                                     -
                                                 </div>
                                                 <div className="grid-ridee-name-section">
-                                                    {assignment.ridee} ({assignment.rideeLeader})
+                                                    {assignment.ridee} {assignment.rideeLeader ? `(${assignment.rideeLeader})` : ''}
                                                 </div>
                                                 <div className="grid-ridee-phone-section">
                                                     {assignment.tel}
@@ -47,7 +47,7 @@ class AssignReport extends React.Component {
                                                 <div className="grid-ridee-middle-bottom">
                                                 </div>
                                                 <div className="grid-ridee-address-section">
-                                                    {assignment.address}
+                                                    {assignment.rideeAddress}
                                                 </div>
                                             </div>
                                         </div>

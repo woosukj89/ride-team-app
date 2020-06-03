@@ -6,13 +6,9 @@ import Queue from "./Queue";
 
 const AdminQueue = (props) => {
 
-    const [activeQueue, setActiveQueue] = useState([]);
-    const [availableRiders, setAvailableRiders] = useState([]);
-    const [rideNeeded, setRideNeeded] = useState([]);
+    const [activeQueue, setActiveQueue] = useState(null);
     const [ridersList, setRidersList] = useState([]);
     const [rideesList, setRideesList] = useState([]);
-    const [pendingRiders, setPendingRiders] = useState([]);
-    const [pendingRidees, setPendingRidees] = useState([]);
 
     useEffect(() => {
         userService.getQueue(helper.getDate(new Date())).then((queue) => {
@@ -28,33 +24,9 @@ const AdminQueue = (props) => {
         });
     }, []);
 
-    const addRider = () => {
-
-    };
-
-    const removeRider = () => {
-
-    };
-
-    const addPendingRider = () => {
-
-    };
-
-    const addRidee = () => {
-
-    };
-
-    const removeRidee = () => {
-
-    };
-
-    const addPendingRidee = () => {
-
-    };
-
     return (
         <div>
-            {activeQueue &&
+            {!!activeQueue &&
             <div>
                 <div>
                     <div>

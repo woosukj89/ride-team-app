@@ -38,7 +38,7 @@ const dayTypeArrayToNestedObject = async (dayTypes) => {
         const day = dayRef[dayType.DAY];
         const type = {type: typeRef[dayType.TYPE]};
         if (days.has(day)) {
-            const resultDay = resultDayType.find(r => r.day === dayType.DAY);
+            const resultDay = resultDayType.find(r => r.day === day);
             resultDay['types'].push(type);
         } else {
             resultDayType.push({day: day, types: [type]});
@@ -49,12 +49,51 @@ const dayTypeArrayToNestedObject = async (dayTypes) => {
     return resultDayType;
 };
 
+const mapDayTypeUserArray = async (dayTypes) => {
+    const dayRef = await userService.getDaysRef().then(daysRefArrayToObject);
+    const typeRef = await userService.getTypesRef().then(typesRefArrayToObject);
+
+    return dayTypes.map(dayType => {
+        return {
+            day: dayRef[dayType.DAY],
+            type: typeRef[dayType.TYPE],
+            rideeID: dayType.RIDER_ID,
+            riderID: dayType.RIDEE_ID
+        }
+    });
+};
+
 const daysRefArrayToObject = (daysRef) => {
     return daysRef.data.reduce((days, day) => { return {...days, [day.ID]: day.DAY}}, {})
 };
 
 const typesRefArrayToObject = (typesRef) => {
     return typesRef.data.reduce((types, type) => { return {...types, [type.KEY]: type.RIDE_TYPE}}, {})
+};
+
+const createRiderRideeInfoMap = (data) => {
+    return data.reduce((obj, user) => {
+        const { ID, ...rest } = user;
+        obj[ID] = rest;
+        return obj;
+    }, {});
+};
+
+const mapDayTypeToAvailableRiderOrRidee = (data) => {
+    const userID = data[0].hasOwnProperty('RIDER_ID') ? 'RIDER_ID' : 'RIDEE_ID';
+    return data.reduce((obj, row) => {
+        if (!obj.hasOwnProperty(row.DAY)) {
+            obj[row.DAY] = {};
+        }
+        const day = obj[row.DAY];
+        const type = row.TYPE;
+        if (!day.hasOwnProperty(type)) {
+            day[type] = [];
+        }
+        day[type].push({id: row[userID], name: row.NAME});
+
+        return obj;
+    }, {})
 };
 
 const mapHistoryData = async (historyConfig, historyData) => {
@@ -88,5 +127,8 @@ export {
     dayTypeArrayToNestedObject,
     daysRefArrayToObject,
     typesRefArrayToObject,
-    mapHistoryData
+    mapHistoryData,
+    mapDayTypeUserArray,
+    mapDayTypeToAvailableRiderOrRidee,
+    createRiderRideeInfoMap
 };

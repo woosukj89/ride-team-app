@@ -1,246 +1,262 @@
-import React from 'react';
-import DateSelectMulti from "./DateSelectMulti";
-import { Constants } from "./properties";
-import userService from "./service/UserService";
-import utilityService from "./service/utilityService";
-import { DateUtils } from "react-day-picker";
-import NewWindow from "react-new-window";
+import React, { useState, useEffect, useRef } from "react";
 import AssignReport from "./AssignReport";
+import {Constants} from "./properties";
+import userService from "./service/UserService";
+import helper from "./service/helpers";
+import {createRiderRideeInfoMap, mapDayTypeToAvailableRiderOrRidee} from "./service/responseHandlers";
 import html2canvas from "html2canvas";
 
-class Assign extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            page: 0,
-            rowIndex: 0,
-            assignRows: [],
-            days: [],
-            allRiders: [],
-            allRidees: [],
-            selectedRiders: [''],
-            selectedRidees: [''],
-            selectedDayIndex: 0,
-            selectedTypeIndex: 0,
-            reportWindowOpen: false,
+
+const Assign = (props) => {
+
+    const pageRef = {
+        0: 'assignment',
+        1: 'report'
+    };
+
+    const activeQueue = useRef(null);
+    const rideeInfoMap = useRef(null);
+    const riderInfoMap = useRef(null);
+
+    const [page, setPage] = useState(0);
+    const [assignRows, setAssignRows] = useState([]);
+    const [daysTypesAllowed, setDaysTypesAllowed] = useState([]);
+    const [ridesNeeded, setRidesNeeded] = useState({});
+    const [availableRiders, setAvailableRiders] = useState({});
+    const [errors, setErrors] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [reportData, setReportData] = useState({days: []});
+    const [saving, setSaving] = useState(false);
+    const [assignmentComplete, setAssignmentComplete] = useState(false);
+
+    const fetchDependencyData = async () => {
+        activeQueue.current = await userService.getQueue(helper.getDate(new Date())).then(res => res.data);
+        rideeInfoMap.current = await userService.getRidees().then(res => createRiderRideeInfoMap(res.data));
+        riderInfoMap.current = await userService.getRiders().then(res => createRiderRideeInfoMap(res.data));
+    };
+
+    useEffect(() => {
+        const fetch = async () => {
+            setDaysTypesAllowed(await userService.getDaysAllowed().then(res => res.data));
+
+            if (!activeQueue.current) {
+                raiseError("No Active Queue at this time.");
+                return;
+            }
+
+            const initialRows = await userService.getRideNeeded({ queueID: activeQueue.current.ID }).then(res => res.data);
+            initialRows.forEach(ridee => addAssignRow(ridee));
+            setRidesNeeded(mapDayTypeToAvailableRiderOrRidee(initialRows));
+
+            setAvailableRiders(await userService.getRideAvailability({ queueID: activeQueue.current.ID })
+                .then(res => mapDayTypeToAvailableRiderOrRidee(res.data)));
         };
+        setLoading(true);
+        fetchDependencyData().then(() => { fetch() });
+        setLoading(false);
+    }, []);
 
-        this.pageRef = {
-            0: 'assignment',
-            1: 'report'
-        };
-        this.reportData = null;
-        this.rideeLeaderMap = null;
-        this.riderLeaderMap = null;
-
-        this.newRiderRef = React.createRef();
-        this.handleDateSelect = this.handleDateSelect.bind(this);
-        this.selectRidee = this.selectRidee.bind(this);
-        this.selectRider = this.selectRider.bind(this);
-        this.addToAllRiders = this.addToAllRiders.bind(this);
-        this.addRow = this.addRow.bind(this);
-        this.deleteRow = this.deleteRow.bind(this);
-        this.moveBack = this.moveBack.bind(this);
-        this.moveNext = this.moveNext.bind(this);
-        this.handleChange = this.handleChange.bind(this);
-        this.createReport = this.createReport.bind(this);
-        this.saveAssignment = this.saveAssignment.bind(this);
-        this.closeWindow = this.closeWindow(this);
-        this.saveReport = this.saveReport.bind(this);
-        this.mapForReport = this.mapForReport.bind(this);
-    }
-
-    componentDidMount() {
-        userService.getRiders().then(riders => {
-            this.setState({
-                allRiders: riders.data
-            });
-            this.riderLeaderMap = new Map(riders.data.map(rider => [rider.NAME, rider.LEADER]));
-        });
-        userService.getRidees().then(ridees => {
-            this.setState({
-                allRidees: ridees.data
-            });
-            this.rideeLeaderMap = new Map(ridees.data.map(ridee => [ridee.NAME, ridee.LEADER]));
-        });
-    }
-
-    handleDateSelect(day, { selected }) {
-        const { days } = this.state;
-        if (selected) {
-            const selectedIndex = days.findIndex(selectedDay =>
-                DateUtils.isSameDay(selectedDay.day, day)
-            );
-            days.splice(selectedIndex, 1);
-        } else {
-            days.push(
-                {
-                    day: day,
-                    weekDay: Constants.DayRef[day.getDay()]
-                });
-        }
-        this.setState({ days })
-    }
-
-    selectRider(event) {
-        const riderName = event.target.value;
-        const findIndex = this.state.selectedRiders.findIndex(selected => selected === riderName);
-        const { selectedRiders } = this.state;
-        if (findIndex < 0) {
-            this.setState({
-                selectedRiders: [...selectedRiders, riderName]
-            });
-        } else {
-            selectedRiders.splice(findIndex, 1);
-            this.setState({ selectedRiders })
-        }
-    }
-
-    selectRidee(event) {
-        const rideeName = event.target.value;
-        const { selectedRidees } = this.state;
-        const findIndex = selectedRidees.findIndex(selected => selected === rideeName);
-        if (findIndex < 0) {
-            this.setState({
-                selectedRidees: [...selectedRidees, rideeName]
-            });
-        } else {
-            selectedRidees.splice(findIndex, 1);
-            this.setState({ selectedRidees });
-        }
-    }
-
-    addToAllRiders() {
-        const customRider = {
-            ID: this.state.allRiders.length + 1,
-            NAME: this.newRiderRef.current.value
-        };
-        const allRiders = [...this.state.allRiders, customRider];
-        this.setState({ allRiders })
-    }
-
-    addRow(event) {
+    const addAssignRow = (data) => {
+        const ridee = data.RIDEE_ID && rideeInfoMap.current ? rideeInfoMap.current[data.RIDEE_ID] : {};
         const newRow = {
-            key: this.state.rowIndex,
-            day: this.state.days[this.state.selectedDayIndex].weekDay,
-            ridee: '',
-            address: '',
-            tel: '',
-            rider: '',
-            leader: '',
-            type: Constants.RideTypes[this.state.selectedTypeIndex],
-            date: this.formatDate(this.state.days[this.state.selectedDayIndex].day)
+            date: data.hasOwnProperty('DAY') ? helper.findDateOfDay(getDayOfWeek(), data.DAY) : '',
+            day: data.hasOwnProperty('DAY') ? data.DAY.toString() : null,
+            type: data.hasOwnProperty('TYPE') ? data.TYPE.toString() : null,
+            ridee: data.RIDEE_ID || '',
+            rideeAddress: ridee.ADDRESS || '',
+            rideeLeader: ridee.LEADER || '',
+            tel: ridee.PHONE_NUMBER || '',
+            rider: -1,
+            riderAddress: '',
+            riderLeader: '',
+            manualRideeInput: false,
+            manualRiderInput: false
         };
-        const assignRows = this.state.assignRows.concat(newRow);
-        this.setState({
-            assignRows: assignRows,
-            rowIndex: this.state.rowIndex + 1
-        });
-    }
+        setAssignRows(assignRows => assignRows.concat(newRow));
+    };
 
-    deleteRow() {
-        const { assignRows } = this.state;
-        assignRows.pop();
-        this.setState({ assignRows });
-    }
-
-    handleChange(id, event) {
+    const handleChange = (id, event) => {
         const target = event.target;
+        let name = target.name;
         const value = target.value;
-        const name = target.name;
-        const newValues = {[name]: value};
+        const newValues = {};
 
-        if (name === 'ridee') {
-            const rideeInfo = this.state.allRidees.filter(ridee => ridee.NAME === value)[0];
-            newValues['address'] = rideeInfo.ADDRESS;
-            newValues['tel'] = rideeInfo.PHONE_NUMBER;
-            newValues['leader'] = rideeInfo.LEADER;
+        if (name === "day") {
+            newValues["date"] = helper.findDateOfDay(getDayOfWeek(), value);
         }
 
-        if (name === 'day') {
-            const selectedDayIndex = target.options.selectedIndex;
-            newValues['date'] = this.formatDate(this.state.days[selectedDayIndex].day);
-            this.setState({ selectedDayIndex });
+        if (name === "ridee-select" && value !== "custom") {
+            const ridee = rideeInfoMap.current ? rideeInfoMap.current[value] : {};
+            newValues['rideeAddress'] = ridee.ADDRESS;
+            newValues['rideeLeader'] = ridee.LEADER;
+            newValues['tel'] = ridee.PHONE_NUMBER;
         }
 
-        if (name === 'type') {
-            const selectedTypeIndex = target.options.selectedIndex;
-            this.setState({ selectedTypeIndex });
+        if (name === "ridee-select" && value === "custom") {
+            newValues['manualRideeInput'] = true;
         }
 
-        this.setState({
-            assignRows: this.state.assignRows.map(row => row.key === id ? {...row, ...newValues} : row)
+        if (name === "rider-select" && value !== "custom") {
+            const rider = riderInfoMap.current ? riderInfoMap.current[value] : {};
+            newValues['riderLeader'] = rider.LEADER;
+        }
+
+        if (name === "rider-select" && value === "custom") {
+            newValues['manualRiderInput'] = true;
+        }
+
+        if (name === "ridee-select" || name === "ridee-input") {
+            name = "ridee";
+        }
+
+        if (name === "rider-select" || name === "rider-input") {
+            name = "rider"
+        }
+
+        newValues[name]= value;
+
+        const newAssignRows = [...assignRows];
+        newAssignRows.splice(id, 1, {...assignRows[id], ...newValues});
+        setAssignRows(newAssignRows);
+    };
+
+    const getDayOfWeek = () => {
+        return activeQueue.current ? activeQueue.current.START_DATE : helper.getDate(new Date());
+    };
+
+    const addRow = () => {
+        addAssignRow({});
+    };
+
+    const deleteRow = (id) => {
+        const newAssignRows = [...assignRows];
+        newAssignRows.splice(id, 1);
+        setAssignRows(newAssignRows);
+    };
+
+    const saveReport = () => {
+        const report = document.getElementById("assignment-report");
+        window.scrollTo(0, 0);
+        html2canvas(report)
+            .then(function(canvas) {
+                const dataURL = canvas.toDataURL("jpeg");
+                const report = window.open();
+                report.document.write('<iframe src="' + dataURL + '" frameborder="0" style="border:0; top:0; left:0; bottom: 0; height:100%; width: 100%"></iframe>')
+            });
+    };
+
+    const createReport = () => {
+        const fieldErrors = validateFields();
+        if (fieldErrors.length) {
+            setErrors(errors => errors.concat(fieldErrors));
+            return;
+        }
+        setErrors([]);
+        setReportData(mapForReport());
+        setPage(1);
+    };
+
+    const validateFields = () => {
+        const emptyFields = [];
+        assignRows.forEach((row, idx) => {
+            if (!row.rider || (Number.isInteger(row.rider) ? row.rider === -1 : !(row.rider.trim()))) {
+                emptyFields.push(`Required: ${idx} - Rider`);
+            }
+            if (!row.ridee || (Number.isInteger(row.ridee) ? !(row.ridee.toString().trim()) : false)) {
+                emptyFields.push(`Required: ${idx} - Ridee`);
+            }
         });
-    }
+        return emptyFields;
+    };
 
-    moveBack(event) {
-        const currentPage = this.state.page;
-        this.setState(
-            {page: currentPage >= 1 ? currentPage - 1 : 0}
-        );
-    }
-
-    moveNext(event) {
-        const currentPage = this.state.page;
-        this.setState(
-            {page: currentPage < 4 ? currentPage + 1 : 4}
-        );
-    }
-
-    createReport() {
-        this.setState({
-            reportData: this.mapForReport(),
-            // reportWindowOpen: true
+    const completeAssignment = () => {
+        setSaving(true);
+        const data = mapData();
+        if (!activeQueue.current || !activeQueue.current.ID) {
+            setErrors(["No Active Queue Available. Set up a queue first."]);
+            return;
+        }
+        userService.insertPendingRides(data).then(res => {
+            if (res.message === "success") {
+                const queueData = {
+                    ID: activeQueue.current.ID,
+                    ASSIGNMENT_COMPLETE: 1
+                };
+                userService.saveQueue(queueData).then(res => {
+                    if (res.message === "success") {
+                        setAssignmentComplete(true);
+                    } else {
+                        setErrors(errors => errors.concat(res.error));
+                    }
+                })
+            } else {
+                setErrors([res.error]);
+            }
+            setSaving(false);
         });
-        this.moveNext();
-    }
+    };
 
-    saveAssignment(event) {
-        const data = this.mapData();
-        utilityService.insertHistory(data).then(res => console.log(res))
-    }
-
-    mapData() {
+    const mapData = () => {
         return {
-            data: this.state.assignRows.map(row => (
-                {
-                    ridee: row.ridee,
-                    rider: row.rider,
+            data: assignRows.map(row => {
+                const ridee = rideeInfoMap.current[row.ridee];
+                const rider = riderInfoMap.current[row.rider];
+
+                return {
+                    ridee: ridee.NAME,
+                    rideeID: row.ridee,
+                    rideeAddress: row.rideeAddress || ridee.ADDRESS,
+                    rider: rider.NAME,
+                    riderID: row.rider,
+                    riderAddress: row.riderAddress || rider.ADDRESS,
                     day: row.day,
                     date: row.date,
                     type: row.type,
-                }
-            ))
+                    queueID: activeQueue.current.ID
+                };
+            })
         }
-    }
+    };
 
-    mapForReport() {
-        const rideeLeaderMap = this.rideeLeaderMap;
-        const riderLeaderMap = this.riderLeaderMap;
-        function getRideeLeader(ridee) {
-            const leader = rideeLeaderMap.get(ridee) || "";
-            return leader.length && leader.length === 2 ?
-                leader.substr(1, 1) : leader.substr(1, 2);
+    const raiseError = (errorMessage) => {
+        setErrors(errors => errors.concat(errorMessage));
+    };
+
+    const mapForReport = () => {
+        function getRideeRiderName(user, infoMap) {
+            if (Number.isInteger(user)) {
+                return infoMap[user].NAME;
+            }
+            if (infoMap[parseInt(user)]) {
+                return infoMap[parseInt(user)].NAME;
+            }
+            return user;
         }
-        function getRiderLeader(rider) {
-            const leader = riderLeaderMap.get(rider);
-            return leader.length === 2 ? leader.substr(1, 1) : leader.substr(1, 2);
+
+        function formatLeaderName(leader) {
+            if (leader === "새가족") {
+                return leader;
+            }
+            return leader && leader.length ?
+                leader.substr(leader.length - 2) : '';
         }
-        function getTypeIndex(type) {
-            return Constants.RideTypes.indexOf(type);
-        }
+
         function formatDate(date) {
             const splitDate = date.split('-');
             return `${+splitDate[1]}/${+splitDate[2]}`
         }
+
         const dayMap = new Map();
         const mapData = {days: []};
-        this.state.assignRows.forEach((originalRow) =>
+        assignRows.forEach((originalRow) =>
             {
                 const row = { ...originalRow };
-                row.rideeLeader = getRideeLeader(row.ridee);
-                row.riderLeader = getRiderLeader(row.rider);
-                row.type = getTypeIndex(row.type);
+                row.day = Constants.DayRef[row.day];
+                // row.type = Constants.RideTypes[row.type];
+                row.ridee = getRideeRiderName(row.ridee, rideeInfoMap.current);
+                row.rider = getRideeRiderName(row.rider, riderInfoMap.current);
+                row.rideeLeader = formatLeaderName(row.rideeLeader);
+                row.riderLeader = formatLeaderName(row.riderLeader);
                 row.date = formatDate(row.date);
                 const { day, date, ...rest } = row;
                 if (!dayMap.get(day)) {
@@ -270,9 +286,9 @@ class Assign extends React.Component {
                         typeData.assignment.push(assignment);
                     } else {
                         const pushData = {
-                                type: type,
-                                assignment: [ assignment ]
-                            };
+                            type: type,
+                            assignment: [ assignment ]
+                        };
                         dayData.types.push(pushData);
                         typeSet.add(type);
                     }
@@ -280,205 +296,151 @@ class Assign extends React.Component {
             }
         );
         return mapData;
-    }
+    };
 
-    closeWindow() {
-        this.setState({
-            reportWindowOpen: false
-        });
-    }
-
-    saveReport() {
-        const report = document.getElementById("assignment-report");
-        // const clone = report.cloneNode(true);
-        // const cloneStyle = clone.style;
-        // cloneStyle.position = 'relative';
-        // cloneStyle.top = report.offsetHeight + 'px';
-        // cloneStyle.left = 0;
-        // document.body.appendChild(clone);
-
-        // const rect = report.getBoundingClientRect();
-        // const pos = {x: rect.left, y: rect.top};
-        // console.log(pos);
-        // html2canvas(document.querySelector("#assignment-report"), { x: pos.x, y: -pos.y, height: report.offsetHeight })
-        window.scrollTo(0, 0);
-        // html2canvas(report, { scrollY: 0, windowWidth: report.offsetWidth, windowLength: report.offsetHeight })
-        html2canvas(report)
-            .then(function(canvas) {
-                const dataURL = canvas.toDataURL("jpeg");
-                const report = window.open();
-                report.document.write('<iframe src="' + dataURL + '" frameborder="0" style="border:0; top:0; left:0; bottom: 0; height:100%; width: 100%"></iframe>')
-            });
-    }
-
-    formatDate(date) {
-        const d = new Date(date);
-        let month = '' + (d.getMonth() + 1);
-        let day = '' + d.getDate();
-        const year = d.getFullYear();
-
-        if (month.length < 2)
-            month = '0' + month;
-        if (day.length < 2)
-            day = '0' + day;
-
-        return [year, month, day].join('-');
-    }
-
-    render() {
-        return (
-            <div>
-                <h2>Assign</h2>
-                <div id="canvas-container">
-                    {this.pageRef[this.state.page] === 'selectDays' &&
-                    (<div>
-                        <h3>For Which Days?</h3>
-                        <p>Pick the days:</p>
-                        <DateSelectMulti selectedDays={this.state.days.map(day => day.day)} handleDayClick={this.handleDateSelect} />
-                    </div>)
-                    }
-                    {this.pageRef[this.state.page] === 'assignment' &&
-                    (<div>
-                        <h3>Make the Assignments</h3>
+    return (
+        <div>
+            <h2>Assign</h2>
+            {!loading &&
+            <div id="canvas-container">
+                {pageRef[page] === 'assignment' &&
+                (<div>
+                    {assignmentComplete ?
+                        <h3>Assignment complete for week of {activeQueue.current ? helper.dayInLocalStringFormat(activeQueue.current.START_DATE) : ''} </h3> :
+                        <h3>Make assignments for week of {activeQueue.current ? helper.dayInLocalStringFormat(activeQueue.current.START_DATE) : ''}</h3>}
                         <div>
-                            {this.state.assignRows &&
+                            {!!assignRows.length &&
                             <table>
                                 <thead>
-                                    <tr>
-                                        <th>Day</th>
-                                        <th>Ridee</th>
-                                        <th>Address</th>
-                                        <th>Phone Number</th>
-                                        <th>Rider</th>
-                                        <th>Leader</th>
-                                        <th>Type</th>
-                                    </tr>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Day</th>
+                                    <th>Type</th>
+                                    <th>Ridee</th>
+                                    <th>Address</th>
+                                    <th>Phone Number</th>
+                                    <th>Leader</th>
+                                    <th>Rider</th>
+                                </tr>
                                 </thead>
                                 <tbody>
-                                {this.state.assignRows.map((row) => {
-                                    const listData = {
-                                        'days': this.state.days,
-                                        'riders': this.state.selectedRiders,
-                                        'ridees': this.state.selectedRidees
+                                {assignRows.map((row, index) => {
+                                    const staticData = {
+                                        'key': index,
+                                        'daysTypes': daysTypesAllowed,
+                                        'riders': availableRiders,
+                                        'ridees': ridesNeeded
                                     };
                                     return <AssignRow
-                                        listData={listData}
+                                        staticData={staticData}
                                         rowData={row}
-                                        handleChange={this.handleChange}/>
+                                        handleChange={handleChange}
+                                        deleteRow={deleteRow}/>
                                 })}
                                 </tbody>
                             </table>}
                         </div>
                         <div>
-                            <button onClick={this.addRow}>Add Row</button>
-                            <button onClick={this.deleteRow}>Delete Row</button>
+                            <button onClick={addRow}>Add Row</button>
                         </div>
                     </div>
-                    )}
+                )}
 
-                    {this.pageRef[this.state.page] === 'selectRidees' &&
-                    (<div>
-                        <h3>Who Needs A Ride?</h3>
-                        {this.state.allRidees.map(ridee =>
-                            <div>
-                            <input
-                                id={"ridee" + ridee.ID} type="checkbox"
-                                key={ridee.ID} onChange={this.selectRidee}
-                                checked={this.state.selectedRidees.includes(ridee.NAME)}
-                                value={ridee.NAME}/>
-                            <label htmlFor={"rider" + ridee.ID}>{ridee.NAME}</label>
-                            </div>)}
-                    </div>)}
-
-                    {this.pageRef[this.state.page] === 'selectRiders' &&
-                    (<div>
-                        <h3>Who Can Give Rides?</h3>
-                        {this.state.allRiders.map(rider =>
-                            <div>
-                            <input
-                                id={"rider" + rider.ID} type="checkbox"
-                                key={rider.ID} onChange={this.selectRider}
-                                checked={this.state.selectedRiders.includes(rider.NAME)}
-                                value={rider.NAME}/>
-                            <label htmlFor={"rider" + rider.ID}>{rider.NAME}</label>
-                            </div>)}
-                        <label>Add a Rider:
-                            <input type="text" ref={this.newRiderRef}/>
-                            <button onClick={this.addToAllRiders}>Add</button>
-                        </label>
-                    </div>)}
-
-                    {this.pageRef[this.state.page] === 'report' &&
-                    <React.Fragment>
-                        <AssignReport data={this.state.reportData}/>
-                        <div>
-                            <button onClick={this.saveReport}>Save Report</button>
-                        </div>
-                    </React.Fragment>
-                    }
-                </div>
-                <div>
-                    {this.state.page >= 1 && <button onClick={this.moveBack}>Back</button>}
-                    {this.state.page < 3 && <button onClick={this.moveNext}>Next</button>}
-                    {this.state.page === 3 &&
+                {pageRef[page] === 'report' &&
+                <React.Fragment>
+                    <AssignReport data={reportData}/>
                     <div>
-                        <button onClick={this.createReport}>Create Report</button>
-                        <button onClick={this.saveAssignment}>Save</button>
-                    </div>}
-                </div>
+                        <button onClick={saveReport}>Save Report</button>
+                    </div>
+                </React.Fragment>
                 }
-                {/*{this.state.reportWindowOpen &&*/}
-                {/*<NewWindow onUnload={this.closeWindow}>*/}
-                {/*    <AssignReport data={this.state.reportData} />*/}
-                {/*    <button onClick={this.saveReport}>Save</button>*/}
-                {/*</NewWindow>}*/}
+            </div>}
+            {loading && <div>Loading...</div>}
+            {!!errors.length &&
+            <div>
+                <p>Error: {errors.map(error => <div>{error}</div>)}</p>
+            </div>}
+            <div>
+                <div>
+                    <button onClick={createReport}>Create Report</button>
+                    <button onClick={completeAssignment}>{saving ? 'Saving...' : 'Complete Assignment'}</button>
+                </div>
             </div>
-        );
-    }
-}
+        </div>
+    );
+};
 
-export default Assign;
-
-function AssignRow(props) {
+const AssignRow = (props) => {
     const rowData = props.rowData;
-    const rowKey = rowData.key;
-    const days = props.listData.days;
-    const ridees = props.listData.ridees;
-    const riders = props.listData.riders;
-    const types = Constants.RideTypes;
+    const staticData = props.staticData;
+    const rowKey = staticData.key;
+    const daysTypes = staticData.daysTypes;
+    const types = rowData.day ? daysTypes.find(d => d.day_id == rowData.day).types : [];
+    const ridees = staticData.ridees;
+    const riders = staticData.riders;
     const handleChange = props.handleChange;
+
+    const manualRideeInput = rowData.manualRideeInput || false;
+    const manualRiderInput = rowData.manualRiderInput || false;
 
     return(
         <tr key={rowKey}>
             <td>
+                <input type="date" value={rowData.date} />
+            </td>
+            <td>
                 <select name="day" value={rowData.day} onChange={e => handleChange(rowKey, e)}>
-                    {days.map(day => <option>{day.weekDay}</option>)}
+                    <option key="default" value=""> </option>
+                    {daysTypes.map(day => <option key={day.day_id} value={day.day_id}>{Constants.DayRef[day.day_id]}</option>)}
                 </select>
-            </td>
-            <td>
-                <select name="ridee" value={rowData.ridee} onChange={e => handleChange(rowKey, e)}>
-                    {ridees.map(ridee => <option>{ridee}</option>)}
-                </select>
-            </td>
-            <td>
-                {rowData.address}
-            </td>
-            <td>
-                {rowData.tel}
-            </td>
-            <td>
-                <select name="rider" value={rowData.rider} onChange={e => handleChange(rowKey, e)}>
-                    {riders.map(rider => <option>{rider}</option>)}
-                </select>
-            </td>
-            <td>
-                {rowData.leader}
             </td>
             <td>
                 <select name="type" value={rowData.type} onChange={e => handleChange(rowKey, e)}>
-                    {types.map(type => <option>{type}</option>)}
+                    <option key="default" value=""> </option>
+                {(rowData.day && types) ?
+                    types.map(type => <option key={type.id} value={type.type_id}>{Constants.RideTypes[type.type_id]}</option>) :
+                    <option>Choose a day first</option>
+                }
                 </select>
+            </td>
+            <td>
+            {manualRideeInput ?
+                <input name="ridee-input" type="text" value={rowData.ridee} onChange={e => handleChange(rowKey, e)} /> :
+                <select name="ridee-select" value={rowData.ridee} onChange={e => handleChange(rowKey, e)}>
+                    <option key="default" value=""> </option>
+                {!!(rowData.day && rowData.type && ridees[rowData.day]) &&
+                    (ridees[rowData.day][rowData.type] || []).map(ridee =>
+                    <option key={ridee.id} value={ridee.id}>{ridee.name}</option>)}
+                    <option key="custom" value="custom">Add a name</option>
+                </select>
+            }
+            </td>
+            <td>
+                <input name="rideeAddress" type="text" value={rowData.rideeAddress} onChange={e => handleChange(rowKey, e)} />
+            </td>
+            <td>
+                <input name="tel" type="tel" value={rowData.tel} onChange={e => handleChange(rowKey, e)} />
+            </td>
+            <td>
+                <input name="rideeLeader" type="text" value={rowData.rideeLeader} onChange={e => handleChange(rowKey, e)} />
+            </td>
+            <td>
+            {manualRiderInput ?
+                <input name="rider-input" type="text" value={rowData.rider} onChange={e => handleChange(rowKey, e)}/> :
+                <select name="rider-select" value={rowData.rider} onChange={e => handleChange(rowKey, e)}>
+                    <option key="default" value="-1"> </option>
+                {!!(rowData.day && rowData.type && riders[rowData.day]) &&
+                    riders[rowData.day][rowData.type].map(rider =>
+                    <option key={rider.id} value={rider.id}>{rider.name}</option>)}
+                    <option key="custom" value="custom">Add a name</option>
+                </select>
+            }
+            </td>
+            <td>
+                <button onClick={props.deleteRow}>Delete</button>
             </td>
         </tr>
     )
-}
+};
+
+export default Assign;

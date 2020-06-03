@@ -138,6 +138,14 @@ const userService = {
         if (type === "history") {
             return fetch(properties.apiHost + API_URLs.historyDetail + id).then(response => response.json());
         }
+    },
+    insertPendingRides(data) {
+        return fetch(properties.apiHost + API_URLs.pending,
+            {
+                method: "POST",
+                body: JSON.stringify(data),
+                headers: { "Content-type": "application/json; charset=UTF-8"}
+            }).then(response => response.json());
     }
 };
 

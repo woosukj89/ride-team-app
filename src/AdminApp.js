@@ -4,8 +4,7 @@ import {
     BrowserRouter as Router,
     Switch,
     Route,
-    Link,
-    withRouter
+    Link
 } from "react-router-dom";
 import About from './About';
 import Riders from './Riders';
@@ -92,7 +91,10 @@ function AdminApp(props) {
                                            userType="rider"
                                            queueID={props.match.params.queueID} /> }>
                         </Route>
-                        <Route path="/queue/ride-request/:rideeID">
+                        <Route path="/queue/ride-request/:queueID/:rideeID" component={props =>
+                            <DayTypeSelect userID={props.match.params.rideeID}
+                                           userType="ridee"
+                                           queueID={props.match.params.queueID} /> }>
 
                         </Route>
                         <Route path="/queue" component={AdminQueue}/>

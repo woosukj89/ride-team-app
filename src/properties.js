@@ -8,6 +8,7 @@ export const API_URLs = {
     rider: "/api/rider/",
     ridees: "/api/ridees",
     ridee: "/api/ridee/",
+    pending: "/api/ride/pending",
     history: "/api/ride/history",
     historyDetail: "/api/ride/history/detail/",
     queue: "/api/ride/queue/",
@@ -28,7 +29,7 @@ export const Constants = {
         4: '목',
         5: '금',
         6: '토',
-        0: '일',
+        7: '일',
     },
     RideTypes: ['교회', '귀가'],
     ChurchAddress: "1519 W Belt Line Rd, Carrollton, TX 75006"
