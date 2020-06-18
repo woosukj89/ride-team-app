@@ -1,55 +1,80 @@
-import React, { useState, useEffect } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import userService from "./service/UserService";
-import { Redirect } from "react-router-dom";
+import { Link, Redirect } from "react-router-dom";
+import { QueueContext } from "./context/QueueContext";
+import helper from "./service/helpers";
+import { UserContext } from "./context/user-context";
 
 function Assigned(props) {
 
-    console.log("in Assigned");
-    const [assignment, setAssignment] = useState([]);
+    const queueContext = useContext(QueueContext);
+    const activeQueue = queueContext.activeQueue;
+    const userContext = useContext(UserContext);
+    const user = userContext.user;
+    const [assignment, setAssignment] = useState({days: []});
 
     useEffect(() => {
+        if (!activeQueue) {
+            return;
+        }
         const data = {
-            queueID: props.queueID,
-            userID: props.userID,
-            role: props.role
+            queueID: activeQueue.ID,
+            userID: user.id,
+            role: user.role
         };
-        userService.getUserAssignment(data).then(res => {
+        userService.getAllPendingRides(data).then(res => {
             setAssignment(res.data);
         });
-    }, []);
+    }, [activeQueue]);
 
 
     return (
         <div>
-            <h2>Your Ride:</h2>
+            {!activeQueue ?
             <div>
-                {assignment.map(day => (
+                Sorry, there seems to be no queue available for this week.
+            </div> :
+            <div>
+                <h2>Your Ride:</h2>
+                <div>
+                {assignment.days.map(day => (
                     <div>
-                        <h4>{day.day}:</h4>
-                        {day.map(type =>
-                            <div>
-                                <div>{type.type}</div>
-                                <div>{type.names.map(name =>
-                                    <div>
-                                        {name}
-                                    </div>
-                                )}</div>
-                            <button onClick={showAssignmentDetail(props.match.path, props.userID, props.role)}>
-                                View Details
-                            </button>
+                        <h4>{day.day} ({helper.dayInLocalStringFormat(day.date)}):</h4>
+                        {day.types.map(type =>
+                        <div>
+                            <div>{type.type}</div>
+                            <div>{type.rides.map(ride =>
+                                <div>
+                                    {user.role === "ridee" ? ride.rider : ride.ridee}
+                                </div>)}
+                            </div>
+                            <Link to={{
+                                pathname: `${props.match.path}/assignmentDetail/`,
+                                state: {
+                                    queueID: activeQueue.ID,
+                                    userID: user.id,
+                                    role: user.role,
+                                    day: day.dayID,
+                                    type: type.typeID,
+                                }
+                            }}>
+                                <button>View Details</button>
+                            </Link>
                         </div>
                         )}
                     </div>
                 ))}
-            </div>
+                </div>
+            </div>}
         </div>
     );
 }
 
-const showAssignmentDetail = (path, userID, role) => {
-    return role === "rider" ?
-        <Redirect to={`${path}/assignmentDetail/rider/${userID}`} /> :
-        <Redirect to={`${path}/assignmentDetail/ridee/${userID}`} />
-};
+// const showAssignmentDetail = (path, queueID, userID, role) => {
+//     console.log(path);
+//     return role === "rider" || role === "admin" ?
+//         <Redirect to={`${path}/assignmentDetail/rider/${queueID}/${userID}`} /> :
+//         <Redirect to={`${path}/assignmentDetail/ridee/${queueID}/${userID}`} />
+// };
 
 export default Assigned;

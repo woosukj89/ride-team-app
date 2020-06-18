@@ -25,10 +25,35 @@ const dayInLocalStringFormat = (dateString) => {
     return date.toLocaleDateString();
 };
 
+const googleDistanceTextToMiles = (text) => {
+    const reg = text.match(/(\d+(.\d+)?)\s+(\w+)?/);
+    const miles = parseFloat(reg[1]);
+    const unit = reg[3];
+    if (unit === 'ft') {
+        const toMiles = miles / 5280.0;
+        return toMiles < 0.01 ? 0.0 : toMiles;
+    }
+    return miles;
+};
+
+const checkDefinedNotNull = (variable) => {
+    if (Array.isArray(variable)) {
+        return variable.every(v => typeof v !== 'undefined' && v !== null);
+    }
+    return typeof variable !== 'undefined' && variable !== null;
+};
+
+const objectIsEmpty = (obj) => {
+    return Object.keys(obj).length === 0;
+};
+
 const helper = {
     getDate: getDate,
     findDateOfDay: findDateOfDay,
-    dayInLocalStringFormat: dayInLocalStringFormat
+    dayInLocalStringFormat: dayInLocalStringFormat,
+    googleDistanceTextToMiles: googleDistanceTextToMiles,
+    objectIsEmpty: objectIsEmpty,
+    checkDefinedNotNull: checkDefinedNotNull,
 };
 
 export default helper;

@@ -2,34 +2,6 @@
 
 module.exports = {
     mapDaysAllowed: function(days_allowed) {
-    //     // queue_data = [{
-    //     //     ID: 0,
-    //     //     START_DATE: "2020/03/16",
-    //     //     END_DATE: "2020/03/22",
-    //     //     LAST_DAY: "2020/03/18",
-    //     //     ACTIVE: 1
-    //     // }];
-    //     days_allowed = [{
-    //         ID: 0,
-    //         DAY_ALLOWED: 0,
-    //         TYPE_ALLOWED: 0
-    //     },
-    //     {
-    //         ID: 1,
-    //         DAY_ALLOWED: 0,
-    //         TYPE_ALLOWED: 1
-    //     },
-    //     {
-    //         ID: 2,
-    //         DAY_ALLOWED: 1,
-    //         TYPE_ALLOWED: 0
-    //     },
-    //     {
-    //         ID: 3,
-    //         DAY_ALLOWED: 1,
-    //         TYPE_ALLOWED: 1
-    //     }];
-    //
         const data_days = {};
         for (let el of days_allowed) {
             if (data_days[el.DAY_ALLOWED]) {
@@ -52,6 +24,59 @@ module.exports = {
         }
 
         return return_days_data;
-    }
+    },
+    mapPendingRidesByRider: function (pendingRidesArray) {
+        const firstRow = pendingRidesArray[0] || { };
+        const result = {
+            date: firstRow.DATE,
+            dayID: firstRow.DAY,
+            day: firstRow.DAY_NAME,
+            typeID: firstRow.TYPE,
+            type: firstRow.TYPE_NAME,
+            riderID: firstRow.RIDER_ID,
+            rider: firstRow.RIDER,
+            riderAddress: firstRow.RIDER_ADDRESS,
+        };
+        result['rides'] = pendingRidesArray.map(row => (
+            {
+                index: row.INDEX,
+                ridee: row.RIDEE,
+                rideeID: row.RIDEE_ID,
+                rideeAddress: row.RIDEE_ADDRESS,
+                cancelled: row.CANCELLED
+            }
+        ));
 
+        return result;
+    },
+    mapPendingRidesByDayType: function(pendingRidesArray) {
+        const sorted = pendingRidesArray.sort((a, b) => a.DAY - b.DAY || a.TYPE - b.TYPE || a.RIDEE_ID - b.RIDEE_ID);
+        let prevDay, prevType;
+        const result = {
+            days: []
+        };
+        sorted.forEach((row) => {
+            if (row.DAY !== prevDay) {
+                result.days.push({dayID: row.DAY, day: row.DAY_NAME, date: row.DATE, types: []});
+                prevDay = row.DAY;
+            }
+            const day = result.days[result.days.length-1];
+            if (row.TYPE !== prevType) {
+                day.types.push({typeID: row.TYPE, type: row.TYPE_NAME, rides: []});
+                prevType = row.TYPE;
+            }
+            const type = day.types[day.types.length-1];
+            type.rides.push({
+                rider: row.RIDER,
+                riderID: row.RIDER_ID,
+                riderAddress: row.RIDER_ADDRESS,
+                ridee: row.RIDEE,
+                rideeID: row.RIDEE_ID,
+                rideeAdress: row.RIDEE_ADDRESS,
+                index: row.INDEX,
+                cancelled: row.CANCELLED})
+        });
+
+        return result;
+    }
 };

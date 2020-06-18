@@ -80,6 +80,9 @@ const createRiderRideeInfoMap = (data) => {
 };
 
 const mapDayTypeToAvailableRiderOrRidee = (data) => {
+    if (!data || !data.length) {
+        return {};
+    }
     const userID = data[0].hasOwnProperty('RIDER_ID') ? 'RIDER_ID' : 'RIDEE_ID';
     return data.reduce((obj, row) => {
         if (!obj.hasOwnProperty(row.DAY)) {

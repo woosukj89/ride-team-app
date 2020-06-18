@@ -259,9 +259,134 @@ app.delete("/api/ridee/:id", (req, res, next) => {
         })
 });
 
+app.get("/api/ride/pending", (req, res) => {
+    let sql = `SELECT
+               D.DAY AS DAY_NAME, 
+               T.RIDE_TYPE AS TYPE_NAME,
+               P.*
+               FROM RIDE_PENDING P
+               JOIN DAY_REF D
+               ON D.ID = P.DAY
+               JOIN TYPE_REF T
+               ON T.KEY = P.TYPE`;
+    const query = req.query;
+    const conditions = [];
+    const params = [];
+
+    if (query.queueID) {
+        conditions.push('P.QUEUE_ID=?');
+        params.push(req.query.queueID);
+    }
+    if (query.userID && query.role) {
+        if (query.role === "rider" || query.role === "admin") {
+            conditions.push('P.RIDER_ID=?');
+        } else {
+            conditions.push('P.RIDEE_ID=?');
+        }
+        params.push(query.userID);
+    }
+    if (query.day) {
+        conditions.push('P.DAY=?');
+        params.push(query.day);
+    }
+    if (query.type) {
+        conditions.push('P.TYPE=?');
+        params.push(query.type);
+    }
+
+    if (params.length > 0) {
+        sql += ' WHERE ';
+        sql += conditions.join(' AND ');
+    }
+
+    db.all(sql, params, (err, rows) => {
+        if (err) {
+            res.status(400).json({'error': err.message});
+            return;
+        }
+        res.json({
+            "message": "success",
+            "data": query.role === "ridee" ? rows : mapper.mapPendingRidesByRider(rows)
+        })
+    });
+});
+
+app.get("/api/ride/pending/all", (req, res) => {
+    let sql = `SELECT
+               D.DAY AS DAY_NAME, 
+               T.RIDE_TYPE AS TYPE_NAME,
+               P.*
+               FROM RIDE_PENDING P
+               JOIN DAY_REF D
+               ON D.ID = P.DAY
+               JOIN TYPE_REF T
+               ON T.KEY = P.TYPE`;
+    const query = req.query;
+    const conditions = [];
+    const params = [];
+
+    if (query.queueID) {
+        conditions.push('P.QUEUE_ID=?');
+        params.push(req.query.queueID);
+    }
+    if (query.userID && query.role) {
+        if (query.role === "rider" || query.role === "admin") {
+            conditions.push('P.RIDER_ID=?');
+        } else {
+            conditions.push('P.RIDEE_ID=?');
+        }
+        params.push(query.userID);
+    }
+
+    if (params.length > 0) {
+        sql += ' WHERE ';
+        sql += conditions.join(' AND ');
+    }
+
+    db.all(sql, params, (err, rows) => {
+        if (err) {
+            res.status(400).json({'error': err.message});
+            return;
+        }
+        res.json({
+            "message": "success",
+            "data": query.role === "ridee" ? rows : mapper.mapPendingRidesByDayType(rows)
+        })
+    });
+});
+
 app.post("/api/ride/pending", (req, res) => {
-    let sql = `INSERT INTO RIDE_PENDING (QUEUE_ID, DATE, DAY, TYPE, RIDEE, RIDEE_ID, RIDEE_ADDRESS, RIDER, RIDER_ID, RIDER_ADDRESS) VALUES`
-})
+    let sql = `INSERT INTO RIDE_PENDING (QUEUE_ID, DATE, DAY, TYPE, RIDEE, RIDEE_ID, RIDEE_ADDRESS, RIDER, RIDER_ID, RIDER_ADDRESS) VALUES `;
+    const placeholders = req.body.data.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+    sql += placeholders;
+    const data = req.body.data.map((row) => [
+        row.queueID,
+        row.date,
+        row.day,
+        row.type,
+        row.ridee,
+        row.rideeID,
+        row.rideeAddress,
+        row.rider,
+        row.riderID,
+        row.riderAddress
+    ]);
+    const params = data.flat();
+
+    db.run(sql, params, function(err, result) {
+        if(err) {
+            res.status(400).json({'error': err.message});
+            console.log(err);
+            return;
+        }
+        res.json({
+            "message": "success",
+            "data": data,
+            "id": this.lastID
+        })
+    });
+
+});
 
 app.get("/api/ride/history", (req, res, next) => {
     let sql = 'SELECT * FROM RIDE_HISTORY ';
@@ -407,7 +532,7 @@ app.get("/api/ride/queue", (req, res) => {
 app.patch("/api/ride/queue/:id", (req, res) => {
     const sql = `UPDATE RIDE_QUEUE SET
         START_DATE = COALESCE(?, START_DATE),
-        END_DATE = COALESCE(?, START_DATE),
+        END_DATE = COALESCE(?, END_DATE),
         EXPIRE_DATE = COALESCE(?, EXPIRE_DATE),
         ACTIVE = COALESCE(?, ACTIVE),
         ASSIGNMENT_COMPLETE = COALESCE(?, ASSIGNMENT_COMPLETE)

@@ -120,17 +120,6 @@ const userService = {
                 headers: { "Content-type": "application/json; charset=UTF-8"}})
             .then(response => response.json());
     },
-    getUserAssignment(data) {
-        return fetch(properties.apiHost + API_URLs.assignment).then(response => response.json());
-    },
-    markAssignmentAsComplete(data) {
-        return fetch(properties.apiHost + API_URLs.assignment,
-            {
-                method: "PUT",
-                body: JSON.stringify(data),
-                headers: { "Content-type": "application/json; charset=UTF-8"}
-            }).then(response => response.json());
-    },
     getHistory(params) {
         return fetch(properties.apiHost + API_URLs.history + formatQueryParams(params)).then(response=>response.json());
     },
@@ -146,7 +135,13 @@ const userService = {
                 body: JSON.stringify(data),
                 headers: { "Content-type": "application/json; charset=UTF-8"}
             }).then(response => response.json());
-    }
+    },
+    getAllPendingRides(params) {
+        return fetch(properties.apiHost + API_URLs.pendingAll + formatQueryParams(params)).then(response => response.json());
+    },
+    getPendingRides(params) {
+        return fetch(properties.apiHost + API_URLs.pending + formatQueryParams(params)).then(response => response.json());
+    },
 };
 
 export default userService

@@ -17,6 +17,9 @@ import RideDetail from "./RideDetail";
 import AdminQueue from "./AdminQueue";
 import EditQueue from "./EditQueue";
 import DayTypeSelect from "./DayTypeSelect";
+import AssignmentDetail from "./AssignmentDetail";
+import { QueueProvider } from "./context/QueueContext";
+import Assigned from "./Assigned";
 
 function AdminApp(props) {
     return (
@@ -51,6 +54,9 @@ function AdminApp(props) {
                                     <Link to="/assign">Assign</Link>
                                 </li>
                                 <li>
+                                    <Link to="/assigned">Your rides</Link>
+                                </li>
+                                <li>
                                     <Link to="/history">Ride History</Link>
                                 </li>
                                 <li>
@@ -58,6 +64,9 @@ function AdminApp(props) {
                                 </li>
                                 <li>
                                     <Link to="/settings">Settings</Link>
+                                </li>
+                                <li>
+                                    <Link to="/assignmentDetail">Assignment Detail</Link>
                                 </li>
                             </ul>
                         </nav>
@@ -67,51 +76,55 @@ function AdminApp(props) {
             </div>
             <section>
                 <div>
-                    <Switch>
-                        <Route path="/about">
-                            <About />
-                        </Route>
-                        <Route path="/agreements" />
-                        <Route path="/riders/rider/new">
-                            <PersonForm type='rider' mode='new' />
-                        </Route>
-                        <Route path="/riders/rider/:riderID"
-                               component={(props) =>
-                                   <PersonForm type='rider' mode='edit' id={props.match.params.riderID} />} />
-                        <Route path="/riders" component={Riders}/>
-                        <Route path="/ridees/ridee/new">
-                            <PersonForm type='ridee' mode='new' />
-                        </Route>
-                        <Route path="/ridees/ridee/:rideeID"
-                               component={(props) =>
-                                   <PersonForm type='ridee' mode='edit' id={props.match.params.rideeID} />} />
-                        <Route path="/ridees" component={Ridees}/>
-                        <Route path="/queue/availability/:queueID/:riderID" component={props =>
-                            <DayTypeSelect userID={props.match.params.riderID}
-                                           userType="rider"
-                                           queueID={props.match.params.queueID} /> }>
-                        </Route>
-                        <Route path="/queue/ride-request/:queueID/:rideeID" component={props =>
-                            <DayTypeSelect userID={props.match.params.rideeID}
-                                           userType="ridee"
-                                           queueID={props.match.params.queueID} /> }>
+                    <QueueProvider>
+                        <Switch>
+                            <Route path="/about">
+                                <About />
+                            </Route>
+                            <Route path="/agreements" />
+                            <Route path="/riders/rider/new">
+                                <PersonForm type='rider' mode='new' />
+                            </Route>
+                            <Route path="/riders/rider/:riderID"
+                                   component={(props) =>
+                                       <PersonForm type='rider' mode='edit' id={props.match.params.riderID} />} />
+                            <Route path="/riders" component={Riders}/>
+                            <Route path="/ridees/ridee/new">
+                                <PersonForm type='ridee' mode='new' />
+                            </Route>
+                            <Route path="/ridees/ridee/:rideeID"
+                                   component={(props) =>
+                                       <PersonForm type='ridee' mode='edit' id={props.match.params.rideeID} />} />
+                            <Route path="/ridees" component={Ridees}/>
+                            <Route path="/queue/availability/:queueID/:riderID" component={props =>
+                                <DayTypeSelect userID={props.match.params.riderID}
+                                               userType="rider"
+                                               queueID={props.match.params.queueID} /> }>
+                            </Route>
+                            <Route path="/queue/ride-request/:queueID/:rideeID" component={props =>
+                                <DayTypeSelect userID={props.match.params.rideeID}
+                                               userType="ridee"
+                                               queueID={props.match.params.queueID} /> }>
 
-                        </Route>
-                        <Route path="/queue" component={AdminQueue}/>
-                        <Route path="/editQueue" component={EditQueue} />
-                        <Route path="/assign" component={Assign}/>
-                        <Route path="/history">
-                            <History userID={props.userID} role="admin" />
-                        </Route>
-                        <Route path="/ride-detail/:recordID">
-                            <RideDetail role="admin"
-                                        status="history"/>
-                        </Route>
-                        <Route path="/report" component={Report}/>
-                        <Route path="/settings" />
+                            </Route>
+                            <Route path="/queue" component={AdminQueue}/>
+                            <Route path="/editQueue" component={EditQueue} />
+                            <Route path="/assign" component={Assign}/>
+                            <Route path="/assigned/assignmentDetail" component={AssignmentDetail} />
+                            <Route path="/assigned" component={Assigned} />
+                            <Route path="/history">
+                                <History userID={props.userID} role="admin" />
+                            </Route>
+                            <Route path="/ride-detail/:recordID">
+                                <RideDetail role="admin"
+                                            status="history"/>
+                            </Route>
+                            <Route path="/report" component={Report}/>
+                            <Route path="/settings" />
 
-                        <Route path="/" render={() => (<h2>Home</h2>)}/>
-                    </Switch>
+                            <Route path="/" render={() => (<h2>Home</h2>)}/>
+                        </Switch>
+                    </QueueProvider>
                 </div>
             </section>
         </Router>
